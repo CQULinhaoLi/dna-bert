@@ -1,0 +1,11 @@
+# 忽略常见大文件
+*.pt
+*.ckpt
+*.h5
+*.npz
+__pycache__/
+*.log
+*.csv
+data/
+logs/
+outputs/
