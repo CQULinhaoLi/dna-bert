@@ -6,6 +6,7 @@
 __pycache__/
 *.log
 *.csv
+*.bat
 data/
 logs/
 outputs/
