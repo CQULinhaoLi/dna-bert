@@ -20,10 +20,10 @@ class CFG:
     type_vocab_size = 1  # 没有NSP任务，只用一种segment
 
     # ========= 训练设置 =========
-    batch_size = 16 * 4
+    batch_size = 1024
     num_workers = 8 * 4
-    epochs = 5
-    lr = 5e-5
+    epochs = 10
+    lr = 4e-4
     weight_decay = 0.01
     warmup_ratio = 0.1
     max_grad_norm = 1.0

@@ -55,5 +55,5 @@ if __name__ == "__main__":
         fasta_path="./data/ecoli/GCF_000005845.2_ASM584v2_genomic.fna",  # 输入FASTA文件路径
         output_path="./data/ecoli/ecoli_train.txt",  # 输出文件路径
         mode='mixed',  # 提取模式，可选 'split', 'random', 'mixed'
-        random_count=10000  # 随机提取序列的数量
+        random_count=30000 # 随机提取序列的数量
     )

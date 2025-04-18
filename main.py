@@ -5,6 +5,8 @@ import random
 import numpy as np
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
+from transformers import get_linear_schedule_with_warmup
+
 
 from config import CFG
 from dataset import DNABERTDataset
@@ -22,7 +24,7 @@ def set_seed(seed):
 from tqdm import tqdm  
 
 # ===== 2. 训练函数 =====
-def train_fn(model, dataloader, optimizer):
+def train_fn(model, dataloader, optimizer, scheduler):
     model.train()
     total_loss = 0
 
@@ -44,6 +46,7 @@ def train_fn(model, dataloader, optimizer):
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), CFG.max_grad_norm)
         optimizer.step()
+        scheduler.step()
         optimizer.zero_grad()
 
         progress_bar.set_postfix({'step': step + 1, 'loss': f"{loss.item():.4f}"})
@@ -80,11 +83,18 @@ def main():
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=CFG.lr, weight_decay=CFG.weight_decay)
+    # Scheduler with Warmup
+    total_steps = len(train_loader) * CFG.epochs
+    warmup_steps = int(CFG.warmup_ratio * total_steps)  # 比如 0.1 表示 10%
+
+    scheduler = get_linear_schedule_with_warmup(optimizer,
+                                                num_warmup_steps=warmup_steps,
+                                                num_training_steps=total_steps)
 
     # 训练
     for epoch in range(CFG.epochs):
         print(f"\n--- Epoch {epoch + 1}/{CFG.epochs} ---")
-        avg_loss = train_fn(model, train_loader, optimizer)
+        avg_loss = train_fn(model, train_loader, optimizer, scheduler)
         print(f"Epoch {epoch + 1} - Average Loss: {avg_loss:.4f}")
 
     # 保存模型
