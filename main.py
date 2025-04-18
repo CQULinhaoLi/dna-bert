@@ -74,19 +74,19 @@ def main():
 
     # 模型
     model = get_dnabert_model(vocab_dict, CFG)
-    model.to(CFG.device)  # ✅ 必须先移动模型到 device
+    model.to(CFG.device)
 
     # 多卡并行
+    is_parallel = False
     if torch.cuda.device_count() > 1:
         print(f"🔧 使用 {torch.cuda.device_count()} 块GPU并行训练")
         model = torch.nn.DataParallel(model)
+        is_parallel = True
 
-    # Optimizer
+    # Optimizer & Scheduler
     optimizer = AdamW(model.parameters(), lr=CFG.lr, weight_decay=CFG.weight_decay)
-    # Scheduler with Warmup
     total_steps = len(train_loader) * CFG.epochs
-    warmup_steps = int(CFG.warmup_ratio * total_steps)  # 比如 0.1 表示 10%
-
+    warmup_steps = int(CFG.warmup_ratio * total_steps)
     scheduler = get_linear_schedule_with_warmup(optimizer,
                                                 num_warmup_steps=warmup_steps,
                                                 num_training_steps=total_steps)
@@ -97,10 +97,71 @@ def main():
         avg_loss = train_fn(model, train_loader, optimizer, scheduler)
         print(f"Epoch {epoch + 1} - Average Loss: {avg_loss:.4f}")
 
-    # 保存模型
+    # ===========================
+    # ✅ 模型保存（结构 + 权重 + tokenizer + optimizer）
+    # ===========================
     os.makedirs(CFG.output_dir, exist_ok=True)
-    torch.save(model.state_dict(), os.path.join(CFG.output_dir, 'dnabert_pretrained.pth'))
-    print("✅ 模型已保存。")
+
+    # 保存模型结构和权重
+    if is_parallel:
+        model.module.save_pretrained(CFG.output_dir)
+    else:
+        model.save_pretrained(CFG.output_dir)
+
+    # 保存 tokenizer（你自定义的 KmerTokenizer，这里只保存 vocab）
+    with open(os.path.join(CFG.output_dir, f"vocab{CFG.k}.json"), "w") as f:
+        json.dump(tokenizer.vocab_dict, f, indent=4)
+    with open(os.path.join(CFG.output_dir, "tokenizer_config.json"), "w") as f:
+        json.dump({"k": CFG.k}, f, indent=4)
+
+    # 保存 optimizer 和 scheduler（可选）
+    torch.save({
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+    }, os.path.join(CFG.output_dir, "optimizer_scheduler.pt"))
+
+    # 保存训练参数
+    train_args = {
+        # 基本设置
+        "project": CFG.project,
+        "seed": CFG.seed,
+
+        # 数据设置
+        "k": CFG.k,
+        "max_len": CFG.max_len,
+        "train_path": CFG.train_path,
+        "vocab_path": CFG.vocab_path,
+
+        # 模型设置
+        "hidden_size": CFG.hidden_size,
+        "num_hidden_layers": CFG.num_hidden_layers,
+        "num_attention_heads": CFG.num_attention_heads,
+        "intermediate_size": CFG.intermediate_size,
+        "type_vocab_size": CFG.type_vocab_size,
+
+        # 训练设置
+        "batch_size": CFG.batch_size,
+        "num_workers": CFG.num_workers,
+        "epochs": CFG.epochs,
+        "lr": CFG.lr,
+        "weight_decay": CFG.weight_decay,
+        "warmup_ratio": CFG.warmup_ratio,
+        "max_grad_norm": CFG.max_grad_norm,
+
+        # 保存设置
+        "output_dir": CFG.output_dir,
+        "save_steps": CFG.save_steps,
+        "logging_steps": CFG.logging_steps,
+
+        # 其他
+        "use_fp16": CFG.use_fp16
+    }
+
+    with open(os.path.join(CFG.output_dir, "train_args.json"), "w") as f:
+        json.dump(train_args, f, indent=4)
+
+    print(f"✅ 模型与相关信息已保存到：{CFG.output_dir}")
+
 
 
 if __name__ == '__main__':
