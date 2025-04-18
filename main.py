@@ -110,7 +110,7 @@ def main():
 
     # 保存 tokenizer（你自定义的 KmerTokenizer，这里只保存 vocab）
     with open(os.path.join(CFG.output_dir, f"vocab{CFG.k}.json"), "w") as f:
-        json.dump(tokenizer.vocab_dict, f, indent=4)
+        json.dump(tokenizer.vocab, f, indent=4)
     with open(os.path.join(CFG.output_dir, "tokenizer_config.json"), "w") as f:
         json.dump({"k": CFG.k}, f, indent=4)
 
