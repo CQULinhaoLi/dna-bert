@@ -19,7 +19,7 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-from tqdm import tqdm  # 新增
+from tqdm import tqdm  
 
 # ===== 2. 训练函数 =====
 def train_fn(model, dataloader, optimizer):
